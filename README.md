@@ -29,7 +29,7 @@ A visually rich slot machine game with two distinct game modes, realistic reel a
 
 > No build tools required — just download, extract and run.
 
-**[⬇️ Download SlotMachine.zip for Windows](http://dit.uoi.gr/files/SlotMachine.zip)**
+**[⬇️ Download SlotMachine.zip for Windows](https://dit.uoi.gr/files/SlotMachine.zip)**
 
 1. Download and extract `SlotMachine.zip`
 2. Run `SlotMachine.exe`
