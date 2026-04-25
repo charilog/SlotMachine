@@ -1,6 +1,8 @@
 <div align="center">
 
 <img src="icon_256.png" width="120" alt="Slot Machine Icon"/>
+<img src="SlotMachine.png" width="120" alt=""/>
+<img src="DoubleUp.png" width="120" alt=""/>
 
 # 🎰 Slot Machine
 ### v1.0 — OptimTeam
