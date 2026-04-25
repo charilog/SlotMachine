@@ -9,7 +9,8 @@
 
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue?style=flat-square&logo=cplusplus)
 ![Qt](https://img.shields.io/badge/Qt-6.x-41CD52?style=flat-square&logo=qt)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=flat-square&logo=windows)
+![Windows](https://img.shields.io/badge/Platform-Windows-0078D6?style=flat-square&logo=windows)
+![Linux](https://img.shields.io/badge/Platform-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 </div>
@@ -19,6 +20,22 @@
 ## 📋 Overview
 
 A visually rich slot machine game with two distinct game modes, realistic reel animations, procedurally synthesised sound effects, and a Double Up gamble feature — all built without any external asset files.
+
+---
+
+## ⬇️ Download & Install
+
+### Windows — Pre-built Installer
+
+> No build tools required — just download, extract and run.
+
+**[⬇️ Download SlotMachine.zip for Windows](http://dit.uoi.gr/files/SlotMachine.zip)**
+
+1. Download and extract `SlotMachine.zip`
+2. Run `SlotMachine.exe`
+3. If Windows Defender prompts, click **More info → Run anyway**
+
+> **Note:** Requires the [Visual C++ Redistributable 2022](https://aka.ms/vs/17/release/vc_redist.x64.exe) (usually already installed).
 
 ---
 
@@ -99,12 +116,12 @@ SlotMachine/
 │   ├── ReelWidget.h / .cpp    # Animated reel with scroll physics + highlights
 │   ├── LowerScreen.h / .cpp   # Easy mode screen (3 reels)
 │   ├── UpperScreen.h / .cpp   # Advanced mode screen (5 reels)
-│   ├── DoubleUpWidget.h / .cpp# Gamble overlay (card animation)
+│   ├── DoubleUpWidget.h / .cpp # Gamble overlay (card animation)
 │   └── MainWindow.h / .cpp    # QStackedWidget host, credit transfer
 │
 ├── main.cpp
 ├── CMakeLists.txt
-├── SlotMachine.ico            # Application icon
+├── SlotMachine.ico            # Application icon (Windows)
 └── README.md
 ```
 
@@ -128,18 +145,19 @@ SlotMachine::spin()
 
 ## 🔧 Build Requirements
 
-| Dependency | Version |
-|------------|---------|
-| C++ Compiler | MSVC 2022 (v19.4+) |
-| CMake | 3.16+ |
-| Qt | 6.x (Widgets + Multimedia) |
+| Dependency | Windows | Linux |
+|------------|---------|-------|
+| C++ Compiler | MSVC 2022 (v19.4+) | GCC 11+ or Clang 14+ |
+| CMake | 3.16+ | 3.16+ |
+| Qt | 6.x (Widgets + Multimedia) | 6.x (Widgets + Multimedia) |
 
 ---
 
 ## 🚀 Build Instructions
 
+### 🪟 Windows (Visual Studio 2022)
+
 ```powershell
-# Clone / download the project
 cd SlotMachine
 
 # Configure (adjust Qt path as needed)
@@ -153,6 +171,51 @@ cmake --build build --config Release
 # Run
 .\build\Release\SlotMachine.exe
 ```
+
+### 🐧 Linux (GCC / Clang)
+
+**Install dependencies (Ubuntu / Debian):**
+```bash
+sudo apt update
+sudo apt install -y \
+  build-essential cmake \
+  qt6-base-dev qt6-multimedia-dev \
+  libgl1-mesa-dev
+```
+
+**Install dependencies (Fedora / RHEL):**
+```bash
+sudo dnf install -y \
+  gcc-c++ cmake \
+  qt6-qtbase-devel qt6-qtmultimedia-devel \
+  mesa-libGL-devel
+```
+
+**Install dependencies (Arch Linux):**
+```bash
+sudo pacman -S --needed \
+  base-devel cmake \
+  qt6-base qt6-multimedia
+```
+
+**Build & Run:**
+```bash
+cd SlotMachine
+
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release
+
+cmake --build build -j$(nproc)
+
+./build/SlotMachine
+```
+
+> **Qt not found?** Specify the path manually:
+> ```bash
+> cmake -S . -B build \
+>   -DCMAKE_BUILD_TYPE=Release \
+>   -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.x/gcc_64
+> ```
 
 ---
 
@@ -193,7 +256,7 @@ cmake --build build --config Release
 | 🍒 🍒 any | ×2 |
 
 ### Advanced Mode (5 Reels, up to 3 Paylines)
-Multipliers up to **×5000** — check in-game for full table.
+Multipliers up to **×5000** across 3 independent paylines — wins are summed when multiple lines hit simultaneously.
 
 ---
 
@@ -203,7 +266,7 @@ Multipliers up to **×5000** — check in-game for full table.
 - **Pre-planned reel stop queue** guarantees correct final symbols without visual snapping
 - **Signal-chained reel stops** — each reel emits `stopped()` to trigger the next, ensuring perfect sequential locking
 - **Pending win system** — credits are never added automatically; always require explicit player action (Collect or Double Up), matching real casino behaviour
-- **`WIN32` subsystem** — no console window when launched
+- **`WIN32` subsystem** (Windows) — no console window when launched
 
 ---
 
