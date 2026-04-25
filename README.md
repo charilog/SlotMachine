@@ -210,7 +210,7 @@ cmake --build build -j$(nproc)
 ## 🎮 How to Play
 
 1. **Set your bet** with the `−` / `+` buttons (min 1, max 20)
-2. Press **SPIN** — reels animate and stop left→right
+2. Press **SPIN** - reels animate and stop left→right
 3. **On a win:**
    - Winning symbols glow gold
    - Win amount shown below reels
@@ -218,7 +218,7 @@ cmake --build build -j$(nproc)
    - Or **DOUBLE UP** to risk it all for 2×
 4. **SPIN is locked** until you Collect or the Double Up resolves
 5. After **20 spins** on Easy, the **Advanced Mode** unlocks (5 reels, 3 paylines, bigger wins)
-6. Switch freely between modes — credits carry over
+6. Switch freely between modes - credits carry over
 7. Toggle **🔊 Sound ON / 🔇 Muted** in the status bar
 
 ---
@@ -244,17 +244,17 @@ cmake --build build -j$(nproc)
 | 🍒 🍒 any | ×2 |
 
 ### Advanced Mode (5 Reels, up to 3 Paylines)
-Multipliers up to **×5000** across 3 independent paylines — wins are summed when multiple lines hit simultaneously.
+Multipliers up to **×5000** across 3 independent paylines - wins are summed when multiple lines hit simultaneously.
 
 ---
 
 ## 🧩 Technical Highlights
 
-- **Procedural audio engine** using Qt6 push-mode `QAudioSink` — single OS audio thread, zero file I/O
+- **Procedural audio engine** using Qt6 push-mode `QAudioSink` - single OS audio thread, zero file I/O
 - **Pre-planned reel stop queue** guarantees correct final symbols without visual snapping
-- **Signal-chained reel stops** — each reel emits `stopped()` to trigger the next, ensuring perfect sequential locking
-- **Pending win system** — credits are never added automatically; always require explicit player action (Collect or Double Up), matching real casino behaviour
-- **`WIN32` subsystem** (Windows) — no console window when launched
+- **Signal-chained reel stops** - each reel emits `stopped()` to trigger the next, ensuring perfect sequential locking
+- **Pending win system** - credits are never added automatically; always require explicit player action (Collect or Double Up), matching real casino behaviour
+- **`WIN32` subsystem** (Windows) - no console window when launched
 
 ---
 
