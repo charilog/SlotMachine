@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="icon_256.png" width="120" alt="Slot Machine Icon"/>
-
+<br>
 <img src="SlotMachine.png" width="300" alt=""/>
 <img src="DoubleUp.png" width="300" alt=""/>
 
