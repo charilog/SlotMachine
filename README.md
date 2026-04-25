@@ -6,7 +6,7 @@
 <img src="DoubleUp.png" width="300" alt=""/>
 
 # 🎰 Slot Machine
-### v1.0 — OptimTeam
+### v1.0 - OptimTeam
 
 *A fully-featured, object-oriented slot machine simulation built with C++17 and Qt 6*
 
@@ -22,15 +22,15 @@
 
 ## 📋 Overview
 
-A visually rich slot machine game with two distinct game modes, realistic reel animations, procedurally synthesised sound effects, and a Double Up gamble feature — all built without any external asset files.
+A visually rich slot machine game with two distinct game modes, realistic reel animations, procedurally synthesised sound effects, and a Double Up gamble feature - all built without any external asset files.
 
 ---
 
 ## ⬇️ Download & Install
 
-### Windows — Pre-built Installer
+### Windows - Pre-built Installer
 
-> No build tools required — just download, extract and run.
+> No build tools required - just download, extract and run.
 
 **[⬇️ Download SlotMachine.zip for Windows](https://dit.uoi.gr/files/SlotMachine.zip)**
 
@@ -54,9 +54,9 @@ A visually rich slot machine game with two distinct game modes, realistic reel a
 ### 🎰 Reel Mechanics
 - **12 unique symbols** with individual appearance probabilities
 - **Realistic weighted strip** (64 stops per reel, shuffled at startup)
-- **Mechanical scroll animation** — symbols slide top→bottom at 60fps, decelerate naturally and snap to correct position
-- **Chain-locked stopping** — reels stop sequentially left→right, each waiting for the previous to fully lock
-- **Win highlights** — winning symbols pulse with a golden glow
+- **Mechanical scroll animation** - symbols slide top→bottom at 60fps, decelerate naturally and snap to correct position
+- **Chain-locked stopping** - reels stop sequentially left→right, each waiting for the previous to fully lock
+- **Win highlights** - winning symbols pulse with a golden glow
 
 ### 🃏 Symbol Set
 
@@ -73,7 +73,7 @@ A visually rich slot machine game with two distinct game modes, realistic reel a
 | BAR BAR | Text (2-line) | Rare (4.3%) |
 | BAR BAR BAR | Text (3-line) | Very rare (2.9%) |
 | 7 | Text | Rare (4.3%) |
-| ★ Wild | Text | Rare (4.3%) — matches any symbol |
+| ★ Wild | Text | Rare (4.3%) - matches any symbol |
 
 ### 🎲 Double Up (Gamble Feature)
 After any win, a **DOUBLE UP** button appears:
@@ -84,7 +84,7 @@ After any win, a **DOUBLE UP** button appears:
 - **Collect** → triggers count-up animation, credits accumulate with coin sound
 
 ### 🔊 Procedural Audio
-All sounds are synthesised at runtime from sine waves, noise, and frequency modulation — **no audio files required**:
+All sounds are synthesised at runtime from sine waves, noise, and frequency modulation - **no audio files required**:
 
 | Event | Sound |
 |-------|-------|
@@ -112,7 +112,7 @@ SlotMachine/
 │   ├── Reel.h / .cpp          # Circular strip, spin(), weighted symbols
 │   ├── PayTable.h / .cpp      # Win evaluation for 3-reel and 5-reel modes
 │   ├── GameState.h / .cpp     # Credits, bet, level, signals
-│   ├── SlotMachine.h / .cpp   # Orchestrator — Reel + PayTable + GameState
+│   ├── SlotMachine.h / .cpp   # Orchestrator - Reel + PayTable + GameState
 │   └── SoundEngine.h / .cpp   # Procedural PCM audio (push-mode QAudioSink)
 │
 ├── ui/                        # Qt Widgets (depend on core)
@@ -260,7 +260,7 @@ Multipliers up to **×5000** across 3 independent paylines - wins are summed whe
 
 ## 👥 Team
 
-**OptimTeam** — v1.0
+**OptimTeam** - v1.0
 
 ---
 
