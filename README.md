@@ -183,21 +183,6 @@ sudo apt install -y \
   libgl1-mesa-dev
 ```
 
-**Install dependencies (Fedora / RHEL):**
-```bash
-sudo dnf install -y \
-  gcc-c++ cmake \
-  qt6-qtbase-devel qt6-qtmultimedia-devel \
-  mesa-libGL-devel
-```
-
-**Install dependencies (Arch Linux):**
-```bash
-sudo pacman -S --needed \
-  base-devel cmake \
-  qt6-base qt6-multimedia
-```
-
 **Build & Run:**
 ```bash
 cd SlotMachine
