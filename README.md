@@ -338,18 +338,6 @@ cp rarity.cfg build/
 
 ---
 
-## 🧩 Technical Highlights
-
-- **Pre-planned reel stop queue** - final symbols queued before deceleration begins; guaranteed correct result with no visual snap
-- **Signal-chained reel stops** - `ReelWidget::stopped()` signal triggers next reel's deceleration; perfect sequential timing
-- **Pending win system** - credits never added automatically; player must Collect or gamble
-- **Dual reel strips** - Easy reels include Bonus scatter; Advanced reels automatically exclude it
-- **External rarity config** - `rarity.cfg` parsed at startup; zero-weight symbols fully excluded
-- **Single audio thread** - push-mode `QAudioSink`, 5 named voice channels, no runtime thread creation
-- **`WIN32` subsystem** - no console window on Windows
-
----
-
 ## 👥 Team
 
 **OptimTeam** - v1.1
