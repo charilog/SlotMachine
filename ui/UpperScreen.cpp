@@ -375,10 +375,14 @@ void UpperScreen::applyWinHighlights() {
     for (auto* rw : m_reelWidgets) rw->clearWinHighlight();
     WinResult r = m_machine->lastResult();
     if (!r.isWin || r.paylineWins.empty()) return;
-    for (int ri = 0; ri < (int)m_reelWidgets.size(); ++ri) {
+    // Wins count from RIGHT → reel index maps from the end
+    int total = static_cast<int>(m_reelWidgets.size());
+    for (int ri = 0; ri < total; ++ri) {
+        // ri=0 is leftmost; right-to-left: reel qualifies if
+        // (total-1-ri) < pw.winCount  (i.e. within the rightmost winCount)
         std::vector<int> rows;
         for (const auto& pw : r.paylineWins)
-            if (ri < pw.winCount) rows.push_back(pw.row);
+            if ((total - 1 - ri) < pw.winCount) rows.push_back(pw.row);
         if (!rows.empty())
             m_reelWidgets[ri]->setWinHighlights(rows);
     }

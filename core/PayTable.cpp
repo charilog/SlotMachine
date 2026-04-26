@@ -19,7 +19,7 @@ void PayTable::initTables() {
         { SymbolType::Orange,      3,    6, "3× Orange 🍊"                      },
         { SymbolType::Lemon,       3,    4, "3× Lemon 🍋"                       },
         { SymbolType::Cherry,      3,    3, "3× Cherry 🍒"                      },
-        { SymbolType::Cherry,      2,    2, "2× Cherry 🍒"                      },
+        { SymbolType::Cherry,      2,    2, "any  🍒  🍒"                       },
     };
 
     // ── 5-reel table (Advanced) ───────────────────────────────────────────────
@@ -58,7 +58,7 @@ void PayTable::initTables() {
         { SymbolType::Cherry,      5,   20, "5× Cherry 🍒"                      },
         { SymbolType::Cherry,      4,    8, "4× Cherry 🍒"                      },
         { SymbolType::Cherry,      3,    3, "3× Cherry 🍒"                      },
-        { SymbolType::Cherry,      2,    2, "2× Cherry 🍒"                      },
+        { SymbolType::Cherry,      2,    2, "any  🍒  🍒"                       },
     };
 }
 
@@ -110,9 +110,10 @@ WinResult PayTable::evalPayline(const std::vector<Symbol>& line,
 }
 
 int PayTable::countFromLeft(const std::vector<Symbol>& line, SymbolType target) const {
+    // Count consecutive matching symbols from the RIGHT
     int count = 0;
-    for (const auto& sym : line) {
-        if (sym.type() == SymbolType::Wild || sym.type() == target) ++count;
+    for (int i = static_cast<int>(line.size()) - 1; i >= 0; --i) {
+        if (line[i].type() == SymbolType::Wild || line[i].type() == target) ++count;
         else break;
     }
     return count;

@@ -317,8 +317,10 @@ void LowerScreen::applyWinHighlights() {
     for (auto* rw : m_reelWidgets) rw->clearWinHighlight();
     WinResult r = m_machine->lastResult();
     if (!r.isWin || r.winCount == 0) return;
-    int n = std::min(r.winCount, (int)m_reelWidgets.size());
-    for (int i = 0; i < n; ++i)
+    // Wins count from RIGHT → highlight last winCount reels
+    int total = static_cast<int>(m_reelWidgets.size());
+    int n = std::min(r.winCount, total);
+    for (int i = total - n; i < total; ++i)
         m_reelWidgets[i]->setWinHighlight(1);
 }
 

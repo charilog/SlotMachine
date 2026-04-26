@@ -6,7 +6,7 @@
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
+    setWindowTitle(QStringLiteral("Slot Machine | v1.1 | OptimTeam"));
     setMinimumSize(740, 740);
     resize(800, 800);
 

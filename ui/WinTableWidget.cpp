@@ -105,7 +105,7 @@ void WinTableWidget::drawEasy(QPainter& p) const {
         { QStringLiteral("🍊 🍊 🍊"),    QStringLiteral("×6"),    false },
         { QStringLiteral("🍋 🍋 🍋"),    QStringLiteral("×4"),    false },
         { QStringLiteral("🍒 🍒 🍒"),    QStringLiteral("×3"),    false },
-        { QStringLiteral("🍒 🍒 any"),   QStringLiteral("×2"),    false },
+        { QStringLiteral("any 🍒 🍒"),   QStringLiteral("×2"),    false },
     };
 
     int rowH = qMin(28, (H - y - pad) / rows.size());
