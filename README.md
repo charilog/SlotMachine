@@ -352,7 +352,7 @@ cp rarity.cfg build/
 
 ## 👥 Team
 
-**OptimTeam** - v1.0
+**OptimTeam** - v1.1
 
 ---
 
