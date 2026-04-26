@@ -28,6 +28,7 @@ class ReelWidget : public QWidget {
 public:
     explicit ReelWidget(QWidget* parent = nullptr);
 
+    void setAdvancedMode(bool advanced);  // show 3 paylines + no Bonus symbols
     void startSpin();
     void stopSpin(const std::vector<Symbol>& topCentreBottom);
     bool isSpinning() const;
@@ -58,8 +59,8 @@ private:
 
     // ── Animation constants ───────────────────────────────────────────────────
     static constexpr float SPIN_SPEED     = 55.0f; // px / 16ms tick
-    static constexpr float DECEL_PER_ADV  = 0.78f; // speed × factor per row crossed
-    static constexpr float MIN_SPEED      =  9.0f; // floor speed during decel
+    static constexpr float DECEL_PER_ADV  = 0.70f; // speed × factor per row crossed
+    static constexpr float MIN_SPEED      =  4.0f; // floor speed during decel
     static constexpr int   N_PLAN_RANDOMS =  6;    // random rows before final symbols
 
     // ── Win highlight ─────────────────────────────────────────────────────────
@@ -69,6 +70,8 @@ private:
     int           m_pulseCount { 0 };
 
     // ── Timers ────────────────────────────────────────────────────────────────
+    bool    m_advancedMode { false };
+    bool    m_includeBonus { true };
     QTimer* m_animTimer { nullptr };
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -76,5 +79,5 @@ private:
                  bool centre, bool highlighted, bool pulseOn) const;
     QColor bgForSymbol(SymbolType t) const;
     QColor fgForSymbol(SymbolType t) const;
-    static Symbol randomSymbol();
+    Symbol randomSymbol() const;
 };

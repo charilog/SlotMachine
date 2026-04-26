@@ -23,7 +23,8 @@ public:
 
     Symbol      symbolAt(int reelIndex, int rowOffset = 0) const;
     WinResult   lastResult()  const;
-    int         pendingWin()  const;   // win amount waiting to be collected
+    int         pendingWin()  const;
+    bool        bonusTriggered() const;  // true if last spin hit 3 scatters   // win amount waiting to be collected
     GameState*  gameState()   const;
     std::vector<Symbol> reelColumn(int reelIndex) const;
 
@@ -37,6 +38,7 @@ private:
     std::unique_ptr<GameState>         m_gameState;
     WinResult                          m_lastResult;
     int                                m_pendingWin { 0 };
+    bool                               m_bonusTriggered { false };
 
     WinResult evaluateResult() const;
 };

@@ -19,7 +19,9 @@ set(CORE_SOURCES
     ${SRC_DIR}/core/GameState.cpp
     ${SRC_DIR}/core/SlotMachine.cpp
     ${SRC_DIR}/core/SoundEngine.cpp
+    ${SRC_DIR}/core/RarityConfig.cpp
     ${SRC_DIR}/ui/DoubleUpWidget.cpp
+    ${SRC_DIR}/ui/WinTableWidget.cpp
 )
 
 set(UI_SOURCES
@@ -36,7 +38,9 @@ set(CORE_HEADERS
     ${SRC_DIR}/core/GameState.h
     ${SRC_DIR}/core/SlotMachine.h
     ${SRC_DIR}/core/SoundEngine.h
+    ${SRC_DIR}/core/RarityConfig.h
     ${SRC_DIR}/ui/DoubleUpWidget.h
+    ${SRC_DIR}/ui/WinTableWidget.h
 )
 
 set(UI_HEADERS
@@ -58,6 +62,14 @@ target_link_libraries(SlotMachine PRIVATE Qt6::Widgets Qt6::Multimedia)
 
 target_include_directories(SlotMachine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# ── Copy rarity.cfg next to executable ──────────────────────────────────────
+add_custom_command(TARGET SlotMachine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SRC_DIR}/rarity.cfg"
+        "$<TARGET_FILE_DIR:SlotMachine>/rarity.cfg"
+    COMMENT "Copying rarity.cfg"
 )
 
 # ── Windows application icon ──────────────────────────────────────────────────

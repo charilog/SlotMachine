@@ -36,6 +36,7 @@ QString Symbol::emoji() const {
         case SymbolType::Bar3:       return QStringLiteral("BAR\nBAR\nBAR");
         case SymbolType::Seven:      return QStringLiteral("7");
         case SymbolType::Wild:       return QStringLiteral("★");
+        case SymbolType::Bonus:      return QStringLiteral("🎯");
         default:                     return QStringLiteral("?");
     }
 }
@@ -54,6 +55,7 @@ int Symbol::value() const {
         case SymbolType::Bar3:       return 60;
         case SymbolType::Seven:      return 100;
         case SymbolType::Wild:       return 200;
+        case SymbolType::Bonus:      return 0;    // scatter — no direct pay
         default:                     return  0;
     }
 }
@@ -66,6 +68,7 @@ bool Symbol::isText() const {
         case SymbolType::Bar3:
         case SymbolType::Seven:
         case SymbolType::Wild:
+        case SymbolType::Bonus:
             return true;
         default:
             return false;

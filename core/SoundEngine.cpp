@@ -46,7 +46,8 @@ void SoundEngine::play(Sound s) {
         case Sound::BigWin:   playVoice(V_RESULT, m_sndBigWin);   break;
         case Sound::Jackpot:  playVoice(V_RESULT, m_sndJackpot);  break;
         case Sound::LevelUp:    playVoice(V_UI,     m_sndLevelUp);    break;
-        case Sound::GambleLose: playVoice(V_RESULT, m_sndGambleLose); break;
+        case Sound::GambleLose:    playVoice(V_RESULT, m_sndGambleLose);    break;
+        case Sound::DoubleUpTick:  playVoice(V_DOUBLEUP, m_sndDoubleUpTick); break;
     }
 }
 
@@ -64,6 +65,14 @@ void SoundEngine::startCoins() {
 
 void SoundEngine::stopCoins() {
     m_voices.erase(V_COINS);
+}
+
+void SoundEngine::startDoubleUp() {
+    if (!m_muted) playVoice(V_DOUBLEUP, m_sndDoubleUpTick, true);
+}
+
+void SoundEngine::stopDoubleUp() {
+    m_voices.erase(V_DOUBLEUP);
 }
 
 bool SoundEngine::isMuted() const { return m_muted; }
@@ -170,6 +179,29 @@ void SoundEngine::generateAll() {
         makeTone(130.0, 0.18, 3.5, 0.40),
         makeTone( 98.0, 0.28, 3.0, 0.30),
     });
+
+    // Double Up loop — fan/turbine flutter:
+    // Rapid amplitude-modulated noise burst at blade-pass frequency
+    {
+        int n = static_cast<int>(0.55 * SAMPLE_RATE);
+        QByteArray data(n * 2, '\0');
+        auto* s = reinterpret_cast<int16_t*>(data.data());
+        const double bladeHz  = 28.0;   // blade-pass frequency (fan speed feel)
+        const double spinHz   = 7.0;    // slower spin wobble
+        for (int i = 0; i < n; ++i) {
+            double t    = static_cast<double>(i) / SAMPLE_RATE;
+            // Noise source
+            double noise = (static_cast<double>(std::rand()) / RAND_MAX) * 2.0 - 1.0;
+            // Amplitude modulated by blade-pass + wobble
+            double blade = 0.5 + 0.5 * std::sin(2.0 * M_PI * bladeHz * t);
+            double wobble= 0.7 + 0.3 * std::sin(2.0 * M_PI * spinHz  * t);
+            // Soft fade in/out at edges
+            double edge  = (i < 512) ? i / 512.0 : (i > n - 512) ? (n - i) / 512.0 : 1.0;
+            double v     = 0.38 * noise * blade * wobble * edge;
+            s[i] = static_cast<int16_t>(std::clamp(v * 32767.0, -32767.0, 32767.0));
+        }
+        m_sndDoubleUpTick = data;
+    }
 
     // Coin loop — rapid metallic clinks that loop seamlessly
     {

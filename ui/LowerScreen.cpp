@@ -1,4 +1,5 @@
 #include "LowerScreen.h"
+#include "WinTableWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTimer>
@@ -13,10 +14,7 @@ LowerScreen::LowerScreen(SlotMachine* machine, SoundEngine* sound, QWidget* pare
             this, &LowerScreen::onSpinFinished);
     connect(m_machine->gameState(), &GameState::creditsChanged,
             this, &LowerScreen::onCreditsChanged);
-    connect(m_machine->gameState(), &GameState::levelChanged,
-            this, [this](GameLevel lvl) {
-                if (lvl == GameLevel::Advanced) emit levelUpRequested();
-            });
+    // levelChanged is handled manually after animation — no auto-connect
 }
 
 void LowerScreen::buildUI() {
@@ -34,22 +32,31 @@ void LowerScreen::buildUI() {
         "background:rgba(255,215,0,0.08);border:1px solid #FFD700;border-radius:6px;"));
     root->addWidget(title);
 
-    // Progress
-    m_progressLabel = new QLabel(QStringLiteral("Spins: 0 / 20  —  play to unlock Advanced Mode"), this);
+    // Bonus hint
+    m_progressLabel = new QLabel(QStringLiteral("🎯 Land 3 BONUS symbols anywhere to enter Advanced Mode!"), this);
     m_progressLabel->setAlignment(Qt::AlignCenter);
-    m_progressLabel->setStyleSheet(QStringLiteral("font-size:11px;color:#aaa;"));
+    m_progressLabel->setStyleSheet(QStringLiteral("font-size:11px;color:#FFB347;font-weight:bold;"));
     root->addWidget(m_progressLabel);
 
-    // Reels
+    // Reels + Win Tables
     QHBoxLayout* reelRow = new QHBoxLayout();
-    reelRow->addStretch();
+    reelRow->setSpacing(6);
+
+    auto* leftTable  = new WinTableWidget(WinTableWidget::Mode::Easy, this);
+    auto* rightTable = new WinTableWidget(WinTableWidget::Mode::Advanced, this);
+    reelRow->addWidget(leftTable);
+
+    QHBoxLayout* reelInner = new QHBoxLayout();
+    reelInner->setSpacing(4);
+    reelInner->setContentsMargins(0,0,0,0);
     for (int i = 0; i < 3; ++i) {
         auto* rw = new ReelWidget(this);
         rw->setFixedSize(100, 300);
         m_reelWidgets.push_back(rw);
-        reelRow->addWidget(rw);
+        reelInner->addWidget(rw);
     }
-    reelRow->addStretch();
+    reelRow->addLayout(reelInner);
+    reelRow->addWidget(rightTable);
     root->addLayout(reelRow);
 
     // Win display (shows pending win amount, counts down during animation)
@@ -198,6 +205,24 @@ void LowerScreen::stopNextReel(int idx) {
         // All reels stopped — show result after brief pause
         QTimer::singleShot(200, this, [this]() {
             m_sound->stopSpin();
+
+            // ── Bonus scatter: 3+ symbols anywhere → Advanced Mode ──
+            if (m_machine->bonusTriggered()) {
+                m_spinBtn->setEnabled(false);
+                m_collectBtn->hide();
+                m_doubleUpBtn->hide();
+                m_winLabel->setText(QStringLiteral("🎯🎯🎯  BONUS ROUND!"));
+                m_statusLabel->setText(
+                    QStringLiteral("%1 FREE SPINS awarded!")
+                    .arg(GameState::FREE_SPINS_AWARD));
+                // Trigger AFTER setting UI (avoids immediate levelChanged signal)
+                m_machine->gameState()->triggerBonusRound();
+                QTimer::singleShot(2000, this, [this]() {
+                    emit levelUpRequested();
+                });
+                return;
+            }
+
             WinResult r   = m_machine->lastResult();
             int pending   = m_machine->pendingWin();
             applyWinHighlights();
@@ -285,13 +310,7 @@ void LowerScreen::syncLabels() {
     GameState* gs = m_machine->gameState();
     m_creditsLabel->setText(QStringLiteral("Credits: %1").arg(gs->credits()));
     m_betLabel->setText(QStringLiteral("Bet: %1").arg(gs->bet()));
-    int sp = gs->totalSpins();
-    m_progressLabel->setText(
-        QStringLiteral("Spins: %1 / %2  —  %3")
-        .arg(sp).arg(GameState::LEVEL_UP_SPINS)
-        .arg(sp < GameState::LEVEL_UP_SPINS
-             ? QStringLiteral("play to unlock Advanced Mode")
-             : QStringLiteral("Advanced Mode unlocked!")));
+    // Progress label is static hint — no update needed
 }
 
 void LowerScreen::applyWinHighlights() {
@@ -306,4 +325,11 @@ void LowerScreen::applyWinHighlights() {
 void LowerScreen::refreshDisplay() {
     syncLabels();
     if (m_doubleUp) m_doubleUp->resize(size());
+    // Re-enable spin when returning from Advanced mode
+    m_spinBtn->setEnabled(true);
+    m_collectBtn->hide();
+    m_doubleUpBtn->hide();
+    m_winLabel->setText(QStringLiteral(""));
+    m_progressLabel->setText(
+        QStringLiteral("🎯 Land 3 BONUS symbols anywhere to enter Advanced Mode!"));
 }

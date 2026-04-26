@@ -7,8 +7,8 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
-    setMinimumSize(680, 680);
-    resize(740, 740);
+    setMinimumSize(740, 740);
+    resize(800, 800);
 
     m_sound = std::make_unique<SoundEngine>(this);
 
@@ -44,11 +44,28 @@ MainWindow::MainWindow(QWidget* parent)
     layout->addWidget(m_stack);
 
     m_lowerScreen = new LowerScreen(m_easyMachine.get(), m_sound.get(), m_stack);
-    m_upperScreen = new UpperScreen(m_advMachine.get(),  m_sound.get(), m_stack);
+    m_upperScreen = new UpperScreen(m_advMachine.get(), m_sound.get(),
+                                    m_easyMachine->gameState(), m_stack);
 
     m_stack->addWidget(m_lowerScreen);
     m_stack->addWidget(m_upperScreen);
     m_stack->setCurrentIndex(0);
+
+    // Bonus count-up timer
+    m_bonusCountTimer = new QTimer(this);
+    m_bonusCountTimer->setInterval(25);
+    connect(m_bonusCountTimer, &QTimer::timeout, this, [this]() {
+        int step = qMax(1, m_bonusCountRemaining / 25);
+        step = qMin(step, m_bonusCountRemaining);
+        m_bonusCountRemaining -= step;
+        m_easyMachine->gameState()->setCredits(
+            m_easyMachine->gameState()->credits() + step);
+        if (m_bonusCountRemaining <= 0) {
+            m_bonusCountTimer->stop();
+            m_sound->stopCoins();
+            m_lowerScreen->refreshDisplay();
+        }
+    });
 
     connect(m_lowerScreen, &LowerScreen::levelUpRequested,
             this, &MainWindow::switchToAdvanced);
@@ -57,7 +74,8 @@ MainWindow::MainWindow(QWidget* parent)
 }
 
 void MainWindow::switchToAdvanced() {
-    transferCredits(m_easyMachine.get(), m_advMachine.get());
+    m_advMachine->gameState()->setCredits(0);
+    m_advMachine->gameState()->triggerBonusRound();
     m_stack->setCurrentIndex(1);
     m_upperScreen->refreshDisplay();
     setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
@@ -65,19 +83,25 @@ void MainWindow::switchToAdvanced() {
 }
 
 void MainWindow::switchToEasy() {
-    transferCredits(m_advMachine.get(), m_easyMachine.get());
+    // Grab bonus credits before resetting adv machine
+    int bonus = m_advMachine->gameState()->credits();
 
-    // ── BUG FIX ───────────────────────────────────────────────────────────────
-    // Reset level back to Easy and clear spin counter so that:
-    //  (a) evaluateResult() uses the correct 3-reel path again
-    //  (b) the progress label shows "0/20" instead of "65/20"
-    m_easyMachine->gameState()->resetProgress();
-    // ─────────────────────────────────────────────────────────────────────────
+    // Reset adv machine for next time
+    m_advMachine->gameState()->setCredits(0);
 
+    // Switch screen first
     m_stack->setCurrentIndex(0);
-    m_lowerScreen->refreshDisplay();
     setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
-    m_sound->play(SoundEngine::Sound::Click);
+
+    // ── Count-up animation: add bonus to easy credits gradually ──────────────
+    if (bonus > 0) {
+        m_bonusCountRemaining = bonus;
+        m_sound->startCoins();
+        m_bonusCountTimer->start();
+        // refreshDisplay called when count finishes
+    } else {
+        m_lowerScreen->refreshDisplay();
+    }
 }
 
 void MainWindow::transferCredits(SlotMachine* from, SlotMachine* to) {

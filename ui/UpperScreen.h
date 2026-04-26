@@ -12,7 +12,9 @@
 class UpperScreen : public QWidget {
     Q_OBJECT
 public:
-    explicit UpperScreen(SlotMachine* machine, SoundEngine* sound, QWidget* parent = nullptr);
+    explicit UpperScreen(SlotMachine* machine, SoundEngine* sound,
+                         GameState* mainCredits,   // lower screen credits (read-only)
+                         QWidget* parent = nullptr);
     void refreshDisplay();
 
 signals:
@@ -29,6 +31,7 @@ private slots:
 private:
     SlotMachine* m_machine;
     SoundEngine* m_sound;
+    GameState*   m_mainCredits { nullptr };  // lower screen credits reference
 
     std::vector<ReelWidget*> m_reelWidgets;
 
@@ -39,7 +42,9 @@ private:
     QPushButton* m_collectBtn  { nullptr };
     QPushButton* m_doubleUpBtn { nullptr };
 
-    QLabel* m_creditsLabel { nullptr };
+    QLabel* m_creditsLabel     { nullptr };  // BONUS credits
+    QLabel* m_mainCreditsLabel { nullptr };  // main credits (lower screen)
+    QLabel* m_freeSpinsLabel   { nullptr };  // prominent free spins countdown
     QLabel* m_betLabel     { nullptr };
     QLabel* m_winLabel     { nullptr };
     QLabel* m_statusLabel  { nullptr };

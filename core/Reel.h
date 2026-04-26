@@ -10,7 +10,7 @@
 class Reel : public QObject {
     Q_OBJECT
 public:
-    explicit Reel(QObject* parent = nullptr);
+    explicit Reel(QObject* parent = nullptr, bool includeBonus = true);
 
     // Build the strip (call before first spin, or use default strip)
     void        setStrip(const std::vector<Symbol>& strip);
@@ -28,5 +28,6 @@ private:
     std::vector<Symbol> m_strip;
     int                 m_currentIndex { 0 };
 
-    static std::vector<Symbol> buildDefaultStrip();
+    static std::vector<Symbol> buildDefaultStrip(bool includeBonus);
+    bool m_includeBonus { true };
 };

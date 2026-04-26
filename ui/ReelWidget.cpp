@@ -1,42 +1,64 @@
 #include "ReelWidget.h"
+#include "../core/RarityConfig.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
 
-Symbol ReelWidget::randomSymbol() {
-    // Same weights as Reel strip for visual consistency during spin
-    static const SymbolType all[] = {
-        SymbolType::Cherry, SymbolType::Cherry, SymbolType::Cherry,
-        SymbolType::Cherry, SymbolType::Cherry, SymbolType::Cherry,
-        SymbolType::Cherry, SymbolType::Cherry, SymbolType::Cherry,
-        SymbolType::Cherry,
-        SymbolType::Lemon,  SymbolType::Lemon,  SymbolType::Lemon,
-        SymbolType::Lemon,  SymbolType::Lemon,  SymbolType::Lemon,
-        SymbolType::Lemon,  SymbolType::Lemon,  SymbolType::Lemon,
-        SymbolType::Orange, SymbolType::Orange, SymbolType::Orange,
-        SymbolType::Orange, SymbolType::Orange, SymbolType::Orange,
-        SymbolType::Orange, SymbolType::Orange,
-        SymbolType::Watermelon, SymbolType::Watermelon, SymbolType::Watermelon,
-        SymbolType::Watermelon, SymbolType::Watermelon, SymbolType::Watermelon,
-        SymbolType::Watermelon,
-        SymbolType::Grape,  SymbolType::Grape,  SymbolType::Grape,
-        SymbolType::Grape,  SymbolType::Grape,  SymbolType::Grape,
-        SymbolType::Strawberry, SymbolType::Strawberry, SymbolType::Strawberry,
-        SymbolType::Strawberry, SymbolType::Strawberry,
-        SymbolType::Bell,   SymbolType::Bell,   SymbolType::Bell,
-        SymbolType::Bell,   SymbolType::Bell,   SymbolType::Bell,
-        SymbolType::Bell,
-        SymbolType::Bar,    SymbolType::Bar,    SymbolType::Bar,
-        SymbolType::Bar,    SymbolType::Bar,
-        SymbolType::Bar2,   SymbolType::Bar2,   SymbolType::Bar2,
-        SymbolType::Bar3,   SymbolType::Bar3,
-        SymbolType::Seven,  SymbolType::Seven,  SymbolType::Seven,
-        SymbolType::Wild,   SymbolType::Wild,   SymbolType::Wild,
+Symbol ReelWidget::randomSymbol() const {
+    using S = SymbolType;
+
+    // Full MAP includes Bonus
+    static const struct { S sym; const char* key; } MAP[] = {
+        { S::Cherry,"Cherry" },{ S::Lemon,"Lemon" },{ S::Orange,"Orange" },
+        { S::Watermelon,"Watermelon" },{ S::Grape,"Grape" },{ S::Strawberry,"Strawberry" },
+        { S::Bell,"Bell" },{ S::Bar,"Bar" },{ S::Bar2,"Bar2" },{ S::Bar3,"Bar3" },
+        { S::Seven,"Seven" },{ S::Wild,"Wild" },{ S::Bonus,"Bonus" },
     };
-    static constexpr int N = sizeof(all) / sizeof(all[0]);
-    return Symbol(all[std::rand() % N]);
+    static constexpr int MAP_SIZE = (int)(sizeof(MAP)/sizeof(MAP[0]));
+
+    // Two separate pre-built tables: with Bonus (Easy) and without (Advanced)
+    static std::vector<SymbolType> tableWith;
+    static std::vector<SymbolType> tableWithout;
+    static bool builtWith    = false;
+    static bool builtWithout = false;
+
+    if (!builtWith || !builtWithout) {
+        auto& cfg = RarityConfig::instance();
+
+        // Find minimum weight (excluding zero and Bonus for base calc)
+        double minW = 1e9;
+        for (int i = 0; i < MAP_SIZE; ++i) {
+            double v = cfg.rarityValue(QString::fromLatin1(MAP[i].key));
+            if (v > 0.0 && MAP[i].sym != S::Bonus && v < minW) minW = v;
+        }
+        if (minW <= 0.0) minW = 1.0;
+
+        if (!builtWith) {
+            for (int i = 0; i < MAP_SIZE; ++i) {
+                double v = cfg.rarityValue(QString::fromLatin1(MAP[i].key));
+                if (v <= 0.0) continue;
+                int stops = std::min(static_cast<int>(std::round(v / minW)), 30);
+                for (int j = 0; j < stops; ++j) tableWith.push_back(MAP[i].sym);
+            }
+            builtWith = true;
+        }
+        if (!builtWithout) {
+            for (int i = 0; i < MAP_SIZE; ++i) {
+                if (MAP[i].sym == S::Bonus) continue;   // skip Bonus for Advanced
+                double v = cfg.rarityValue(QString::fromLatin1(MAP[i].key));
+                if (v <= 0.0) continue;
+                int stops = std::min(static_cast<int>(std::round(v / minW)), 30);
+                for (int j = 0; j < stops; ++j) tableWithout.push_back(MAP[i].sym);
+            }
+            builtWithout = true;
+        }
+    }
+
+    const auto& tbl = m_includeBonus ? tableWith : tableWithout;
+    if (tbl.empty()) return Symbol(S::Cherry);
+    return Symbol(tbl[std::rand() % static_cast<int>(tbl.size())]);
 }
 
 ReelWidget::ReelWidget(QWidget* parent) : QWidget(parent) {
@@ -57,6 +79,12 @@ ReelWidget::ReelWidget(QWidget* parent) : QWidget(parent) {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+void ReelWidget::setAdvancedMode(bool advanced) {
+    m_advancedMode = advanced;
+    m_includeBonus = !advanced;  // Advanced mode has no Bonus scatter
+    update();
+}
+
 void ReelWidget::startSpin() {
     clearWinHighlight();
     m_state        = State::Spinning;
@@ -193,10 +221,17 @@ void ReelWidget::paintEvent(QPaintEvent*) {
         drawRow(p, m_strip[i], rowRect, isCentre, isHighlight, m_pulseOn);
     }
 
-    // Payline indicator through centre
-    int midY = height() / 2;
+    // Payline indicators
     p.setPen(QPen(QColor(255, 200, 0, 160), 2, Qt::DashLine));
-    p.drawLine(0, midY, W, midY);
+    int midY = height() / 2;
+    p.drawLine(0, midY, W, midY);   // centre (always)
+    if (m_advancedMode) {
+        // Top payline
+        p.setPen(QPen(QColor(100, 200, 255, 140), 1, Qt::DashLine));
+        p.drawLine(0, height() / 6, W, height() / 6);
+        // Bottom payline
+        p.drawLine(0, height() * 5 / 6, W, height() * 5 / 6);
+    }
 
     // Outer frame
     p.setPen(QPen(QColor(120, 100, 40), 3));

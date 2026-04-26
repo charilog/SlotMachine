@@ -1,10 +1,13 @@
 #include "Reel.h"
+#include "RarityConfig.h"
 #include <cstdlib>
 #include <algorithm>
 #include <random>
+#include <cmath>
 
-Reel::Reel(QObject* parent) : QObject(parent) {
-    m_strip = buildDefaultStrip();
+Reel::Reel(QObject* parent, bool includeBonus)
+    : QObject(parent), m_includeBonus(includeBonus) {
+    m_strip = buildDefaultStrip(includeBonus);
 }
 
 void Reel::setStrip(const std::vector<Symbol>& strip) {
@@ -36,54 +39,56 @@ int Reel::stripSize()    const { return static_cast<int>(m_strip.size()); }
 // ── Default strip ─────────────────────────────────────────────────────────────
 // More symbols → lower probability of each → harder to win.
 // Rare symbols appear fewer times.
-// Strip weights (out of 64 total stops — standard slot machine reel size):
-//   Cherry     ×10  = 15.6%   most common
-//   Lemon      ×9   = 14.1%
-//   Orange     ×8   = 12.5%
-//   Watermelon ×7   = 10.9%
-//   Grape      ×6   =  9.4%
-//   Strawberry ×5   =  7.8%
-//   Bell       ×7   = 10.9%   mid-tier (common enough to tease)
-//   BAR        ×5   =  7.8%
-//   2BAR       ×3   =  4.7%
-//   3BAR       ×2   =  3.1%
-//   7          ×1   =  1.6%
-//   Wild       ×1   =  1.6%   rarest
-//              ----   -----
-//   Total      64    100%
-std::vector<Symbol> Reel::buildDefaultStrip() {
+// Strip built from rarity.cfg weights.
+// Each symbol gets stops = round(weight / minWeight) clamped to [1..30].
+std::vector<Symbol> Reel::buildDefaultStrip(bool includeBonus) {
     using S = SymbolType;
-    std::vector<Symbol> strip = {
-        Symbol(S::Cherry), Symbol(S::Cherry), Symbol(S::Cherry), Symbol(S::Cherry),
-        Symbol(S::Cherry), Symbol(S::Cherry), Symbol(S::Cherry), Symbol(S::Cherry),
-        Symbol(S::Cherry), Symbol(S::Cherry),
-        Symbol(S::Lemon),  Symbol(S::Lemon),  Symbol(S::Lemon),  Symbol(S::Lemon),
-        Symbol(S::Lemon),  Symbol(S::Lemon),  Symbol(S::Lemon),  Symbol(S::Lemon),
-        Symbol(S::Lemon),
-        Symbol(S::Orange), Symbol(S::Orange), Symbol(S::Orange), Symbol(S::Orange),
-        Symbol(S::Orange), Symbol(S::Orange), Symbol(S::Orange), Symbol(S::Orange),
-        Symbol(S::Watermelon), Symbol(S::Watermelon), Symbol(S::Watermelon),
-        Symbol(S::Watermelon), Symbol(S::Watermelon), Symbol(S::Watermelon),
-        Symbol(S::Watermelon),
-        Symbol(S::Grape),  Symbol(S::Grape),  Symbol(S::Grape),
-        Symbol(S::Grape),  Symbol(S::Grape),  Symbol(S::Grape),
-        Symbol(S::Strawberry), Symbol(S::Strawberry), Symbol(S::Strawberry),
-        Symbol(S::Strawberry), Symbol(S::Strawberry),
-        Symbol(S::Bell),   Symbol(S::Bell),   Symbol(S::Bell),
-        Symbol(S::Bell),   Symbol(S::Bell),   Symbol(S::Bell),
-        Symbol(S::Bell),
-        Symbol(S::Bar),    Symbol(S::Bar),    Symbol(S::Bar),
-        Symbol(S::Bar),    Symbol(S::Bar),
-        Symbol(S::Bar2),   Symbol(S::Bar2),   Symbol(S::Bar2),
-        Symbol(S::Bar3),   Symbol(S::Bar3),
-        Symbol(S::Seven), Symbol(S::Seven), Symbol(S::Seven),
-        Symbol(S::Wild),  Symbol(S::Wild),  Symbol(S::Wild),
-    };
+    auto& cfg = RarityConfig::instance();
 
-    // Shuffle so symbols appear in random order on the visible strip
-    // Use a seeded engine for reproducibility per process run
+    // Full symbol list (includes Bonus)
+    static const struct { S sym; const char* key; } ALL[] = {
+        { S::Cherry,     "Cherry"      },
+        { S::Lemon,      "Lemon"       },
+        { S::Orange,     "Orange"      },
+        { S::Watermelon, "Watermelon"  },
+        { S::Grape,      "Grape"       },
+        { S::Strawberry, "Strawberry"  },
+        { S::Bell,       "Bell"        },
+        { S::Bar,        "Bar"         },
+        { S::Bar2,       "Bar2"        },
+        { S::Bar3,       "Bar3"        },
+        { S::Seven,      "Seven"       },
+        { S::Wild,       "Wild"        },
+        { S::Bonus,      "Bonus"       },   // scatter — Easy only
+    };
+    static constexpr int ALL_SIZE = (int)(sizeof(ALL)/sizeof(ALL[0]));
+
+    // Find minimum non-zero weight (excluding Bonus from base calculation)
+    double minW = 1e9;
+    for (int i = 0; i < ALL_SIZE; ++i) {
+        if (ALL[i].sym == S::Bonus) continue;
+        double v = cfg.rarityValue(QString::fromLatin1(ALL[i].key));
+        if (v > 0.0 && v < minW) minW = v;
+    }
+    if (minW <= 0.0) minW = 1.0;
+
+    std::vector<Symbol> strip;
+    strip.reserve(80);
+
+    for (int i = 0; i < ALL_SIZE; ++i) {
+        // Skip Bonus for Advanced machine (5 reels)
+        if (ALL[i].sym == S::Bonus && !includeBonus) continue;
+
+        double v = cfg.rarityValue(QString::fromLatin1(ALL[i].key));
+        if (v <= 0.0) continue;
+
+        int stops = static_cast<int>(std::round(v / minW));
+        stops = std::max(1, std::min(stops, 30));
+        for (int j = 0; j < stops; ++j)
+            strip.push_back(Symbol(ALL[i].sym));
+    }
+
     static std::mt19937 rng(std::random_device{}());
     std::shuffle(strip.begin(), strip.end(), rng);
-
     return strip;
 }

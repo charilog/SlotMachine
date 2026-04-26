@@ -17,7 +17,18 @@ UpperScreen::UpperScreen(SlotMachine* machine, SoundEngine* sound,
     if (m_mainCredits)
         connect(m_mainCredits, &GameState::creditsChanged,
                 this, [this](int) { syncLabels(); });
-    // Auto-return is handled in finishRound() via isInFreeSpins() check
+    // When free spins run out, consumeFreeSpin() sets level back to Easy
+    // Use that signal to auto-return after animation completes
+    connect(m_machine->gameState(), &GameState::levelChanged,
+            this, [this](GameLevel lvl) {
+                if (lvl == GameLevel::Easy && isVisible()) {
+                    // Delay so animation can finish first
+                    QTimer::singleShot(2400, this, [this]() {
+                        if (!m_machine->gameState()->isInFreeSpins())
+                            emit backRequested();
+                    });
+                }
+            });
 }
 
 void UpperScreen::buildUI() {
@@ -46,15 +57,6 @@ void UpperScreen::buildUI() {
         "border-radius:4px;padding:4px 8px;background:rgba(255,69,0,0.1);"));
     topBar->addWidget(badge);
     root->addLayout(topBar);
-
-    // ── Free Spins countdown bar ─────────────────────────────────────────
-    m_freeSpinsLabel = new QLabel(QStringLiteral("🎯  FREE SPINS: 15"), this);
-    m_freeSpinsLabel->setAlignment(Qt::AlignCenter);
-    m_freeSpinsLabel->setStyleSheet(QStringLiteral(
-        "font-size:18px; font-weight:bold; color:#FFD700;"
-        "background:rgba(255,100,0,0.18); border:2px solid #FF6600;"
-        "border-radius:8px; padding:4px;"));
-    root->addWidget(m_freeSpinsLabel);
 
     QLabel* plbl = new QLabel(QStringLiteral("▶ Paylines: TOP  |  CENTRE  |  BOTTOM ◀"), this);
     plbl->setAlignment(Qt::AlignCenter);
@@ -231,17 +233,6 @@ void UpperScreen::onSpinClicked() {
     m_winLabel->setText(QStringLiteral(""));
     m_statusLabel->setText(QStringLiteral("Spinning…"));
     m_machine->spin();
-    // Update free spins counter immediately after spin() consumes one
-    {
-        int fs = m_machine->gameState()->freeSpinsLeft();
-        if (m_freeSpinsLabel)
-            m_freeSpinsLabel->setText(
-                fs > 0 ? QStringLiteral("🎯  FREE SPINS REMAINING:  %1").arg(fs)
-                       : QStringLiteral("🎯  LAST FREE SPIN!"));
-        m_spinBtn->setText(
-            fs > 0 ? QStringLiteral("🎰  SPIN!  (%1 left)").arg(fs)
-                   : QStringLiteral("🎰  LAST SPIN!"));
-    }
     stopReelsSequentially();
 }
 
@@ -316,23 +307,15 @@ void UpperScreen::onCountTick() {
 void UpperScreen::finishRound() {
     syncLabels();
     if (m_machine->gameState()->isInFreeSpins()) {
-        int fs = m_machine->gameState()->freeSpinsLeft();
-        m_spinBtn->setText(
-            QStringLiteral("🎰  SPIN!  (%1 left)").arg(fs));
-        m_spinBtn->setEnabled(true);
+        m_spinBtn->setEnabled(true);   // more free spins remain
     } else {
-        // Free spins exhausted — show result and auto-return
+        // levelChanged signal already fired → timer running
+        // Show message and lock spin button
         int bonus = m_machine->gameState()->credits();
         m_winLabel->setText(
             QStringLiteral("🏆 BONUS WON: %1 credits!").arg(bonus));
         m_statusLabel->setText(QStringLiteral("Returning to main game…"));
         m_spinBtn->setEnabled(false);
-        m_collectBtn->hide();
-        m_doubleUpBtn->hide();
-        // Direct timer — no signal dependency
-        QTimer::singleShot(2500, this, [this]() {
-            emit backRequested();
-        });
     }
 }
 
@@ -361,14 +344,8 @@ void UpperScreen::syncLabels() {
         m_mainCreditsLabel->setText(QStringLiteral("%1").arg(m_mainCredits->credits()));
     m_betLabel->setText(QStringLiteral("Bet: %1").arg(gs->bet()));
     int fs = gs->freeSpinsLeft();
-    if (m_freeSpinsLabel) {
-        if (fs > 0)
-            m_freeSpinsLabel->setText(
-                QStringLiteral("🎯  FREE SPINS REMAINING:  %1").arg(fs));
-        else
-            m_freeSpinsLabel->setText(
-                QStringLiteral("🎯  FREE SPINS: DONE!"));
-    }
+    if (m_statusLabel && fs > 0)
+        m_statusLabel->setText(QStringLiteral("🎯 FREE SPINS: %1 remaining").arg(fs));
 }
 
 void UpperScreen::applyWinHighlights() {
@@ -387,17 +364,4 @@ void UpperScreen::applyWinHighlights() {
 void UpperScreen::refreshDisplay() {
     syncLabels();
     if (m_doubleUp) m_doubleUp->resize(size());
-    // Always reset UI state on entry (handles 2nd+ visits)
-    m_spinBtn->setEnabled(true);
-    m_collectBtn->hide();
-    m_doubleUpBtn->hide();
-    m_winLabel->setText(QStringLiteral(""));
-    m_statusLabel->setText(QStringLiteral("5 reels, 3 paylines — bigger wins await!"));
-    if (m_freeSpinsLabel) {
-        int fs = m_machine->gameState()->freeSpinsLeft();
-        m_freeSpinsLabel->setText(
-            QStringLiteral("🎯  FREE SPINS: %1  —  NO BET DEDUCTED!").arg(fs));
-        m_spinBtn->setText(
-            QStringLiteral("🎰  SPIN!  (%1 left)").arg(fs));
-    }
 }

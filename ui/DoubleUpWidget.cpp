@@ -18,7 +18,7 @@ DoubleUpWidget::DoubleUpWidget(SoundEngine* sound, QWidget* parent)
     setFocusPolicy(Qt::StrongFocus);
 
     m_spinTimer = new QTimer(this);
-    m_spinTimer->setInterval(350);
+    m_spinTimer->setInterval(120);  
     connect(m_spinTimer, &QTimer::timeout, this, &DoubleUpWidget::onSpinTimer);
 
     m_flashTimer = new QTimer(this);
@@ -97,7 +97,7 @@ void DoubleUpWidget::startGamble(int amount) {
     raise();
     setFocus();
     m_spinTimer->start();
-    if (m_sound) m_sound->startSpin();
+    if (m_sound) m_sound->startDoubleUp();
 }
 
 void DoubleUpWidget::keyPressEvent(QKeyEvent* e) {
@@ -205,7 +205,7 @@ void DoubleUpWidget::onSpinTimer() {
 void DoubleUpWidget::onStopPressed() {
     if (m_state != State::Spinning) return;
     m_spinTimer->stop();
-    if (m_sound) { m_sound->stopSpin(); m_sound->play(SoundEngine::Sound::ReelStop); }
+    if (m_sound) { m_sound->stopDoubleUp(); m_sound->play(SoundEngine::Sound::ReelStop); }
     showResult(std::rand() % 2 == 0);
 }
 
@@ -248,7 +248,7 @@ void DoubleUpWidget::showResult(bool won) {
 
 void DoubleUpWidget::onCollectPressed() {
     m_spinTimer->stop();
-    if (m_sound) m_sound->stopSpin();
+    if (m_sound) m_sound->stopDoubleUp();
     hide();
     emit collected(m_amount);   // emit FULL amount for counting animation
 }
@@ -265,7 +265,7 @@ void DoubleUpWidget::onDoubleAgainPressed() {
     updateAmountLabel();
     update();
     m_spinTimer->start();
-    if (m_sound) m_sound->startSpin();
+    if (m_sound) m_sound->startDoubleUp();
     setFocus();
 }
 

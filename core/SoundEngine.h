@@ -18,7 +18,7 @@
 class SoundEngine : public QObject {
     Q_OBJECT
 public:
-    enum class Sound { Click, ReelStop, Win, BigWin, Jackpot, LevelUp, GambleLose };
+    enum class Sound { Click, ReelStop, Win, BigWin, Jackpot, LevelUp, GambleLose, DoubleUpTick };
 
     explicit SoundEngine(QObject* parent = nullptr);
     ~SoundEngine() override;
@@ -26,6 +26,8 @@ public:
     void play(Sound s);
     void startSpin();
     void stopSpin();
+    void startDoubleUp();  // card-cycling loop for double up
+    void stopDoubleUp();
     void startCoins();   // coin count-up animation loop
     void stopCoins();
 
@@ -44,7 +46,8 @@ private:
     static constexpr int V_STOP   = 1;
     static constexpr int V_RESULT = 2;
     static constexpr int V_SPIN   = 3;
-    static constexpr int V_COINS  = 4;   // coin count-up loop
+    static constexpr int V_COINS    = 4;   // coin count-up loop
+    static constexpr int V_DOUBLEUP = 5;   // double up card tick loop
 
     struct Voice {
         QByteArray data;
@@ -68,6 +71,7 @@ private:
     QByteArray m_sndWin,   m_sndBigWin,  m_sndJackpot;
     QByteArray m_sndLevelUp;
     QByteArray m_sndCoinLoop;
+    QByteArray m_sndDoubleUpTick;
     QByteArray m_sndGambleLose;
 
     void generateAll();

@@ -15,7 +15,8 @@ enum class SymbolType {
     Bar3     = 9,   // 3BAR
     Seven    = 10,
     Wild     = 11,
-    COUNT    = 12
+    Bonus    = 12,   // scatter — 3 anywhere triggers Advanced
+    COUNT    = 13
 };
 
 class Symbol {

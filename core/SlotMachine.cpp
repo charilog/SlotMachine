@@ -14,15 +14,23 @@ SlotMachine::SlotMachine(int numReels, QObject* parent)
 void SlotMachine::rebuildReels(int count) {
     m_reels.clear();
     m_reels.reserve(count);
+    // Advanced mode (5 reels) has no Bonus scatter symbols
+    bool includeBonus = (count <= 3);
     for (int i = 0; i < count; ++i)
-        m_reels.push_back(std::make_unique<Reel>(this));
+        m_reels.push_back(std::make_unique<Reel>(this, includeBonus));
 }
 
 int SlotMachine::numReels() const { return static_cast<int>(m_reels.size()); }
 
 bool SlotMachine::spin() {
-    if (!m_gameState->canSpin())  return false;
-    if (!m_gameState->placeBet()) return false;
+    if (m_gameState->isInFreeSpins()) {
+        // Free spin bonus round — no credit deduction
+        m_gameState->consumeFreeSpin();
+    } else {
+        // Normal spin — deduct bet
+        if (!m_gameState->canSpin())  return false;
+        if (!m_gameState->placeBet()) return false;
+    }
 
     emit spinStarted();
 
@@ -30,6 +38,16 @@ bool SlotMachine::spin() {
         reel->spin();
 
     m_lastResult = evaluateResult();
+
+    // Check scatter bonus: 3+ Bonus symbols anywhere in the visible grid
+    {
+        int bonusCount = 0;
+        for (int ri = 0; ri < numReels(); ++ri)
+            for (int row = -1; row <= 1; ++row)
+                if (symbolAt(ri, row).type() == SymbolType::Bonus) ++bonusCount;
+        // Only set the flag — screen calls triggerBonusRound() after animation
+        m_bonusTriggered = (bonusCount >= 3);
+    }
 
     // Store pending win — credits NOT updated yet.
     // The screen calls collectPendingWin() after the player presses Collect.
@@ -81,3 +99,5 @@ WinResult SlotMachine::evaluateResult() const {
         return m_payTable->evaluate5Reels(grid);
     }
 }
+
+bool SlotMachine::bonusTriggered() const { return m_bonusTriggered; }

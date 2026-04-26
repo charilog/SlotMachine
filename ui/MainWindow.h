@@ -2,6 +2,7 @@
 #include <QMainWindow>
 #include <QStackedWidget>
 #include <QPushButton>
+#include <QTimer>
 #include <memory>
 #include "../core/SlotMachine.h"
 #include "../core/SoundEngine.h"
@@ -37,4 +38,8 @@ private:
     QPushButton*    m_muteBtn      { nullptr };
 
     void transferCredits(SlotMachine* from, SlotMachine* to);
+
+    // Bonus count-up animation (runs after returning to Easy)
+    QTimer* m_bonusCountTimer    { nullptr };
+    int     m_bonusCountRemaining{ 0 };
 };
