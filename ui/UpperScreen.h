@@ -3,6 +3,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTimer>
+#include <QKeyEvent>
 #include <vector>
 #include "../core/SlotMachine.h"
 #include "../core/SoundEngine.h"
@@ -19,6 +20,9 @@ public:
 
 signals:
     void backRequested();
+
+protected:
+    void keyPressEvent(QKeyEvent* e) override;
 
 private slots:
     void onSpinClicked();

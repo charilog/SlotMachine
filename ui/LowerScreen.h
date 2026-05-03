@@ -3,6 +3,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTimer>
+#include <QKeyEvent>
 #include <vector>
 #include "../core/SlotMachine.h"
 #include "../core/SoundEngine.h"
@@ -18,6 +19,10 @@ public:
 signals:
     void levelUpRequested();
 
+protected:
+    void keyPressEvent(QKeyEvent* e) override;
+    void showEvent(QShowEvent* e) override;
+
 private slots:
     void onSpinClicked();
     void onBetPlus();
@@ -29,6 +34,7 @@ private slots:
 private:
     SlotMachine* m_machine;
     SoundEngine* m_sound;
+    bool         m_autoSpin { false };
 
     std::vector<ReelWidget*> m_reelWidgets;
 
@@ -36,7 +42,8 @@ private:
     QPushButton* m_betPlus     { nullptr };
     QPushButton* m_betMinus    { nullptr };
     QPushButton* m_collectBtn  { nullptr };
-    QPushButton* m_doubleUpBtn { nullptr };
+    QPushButton* m_doubleUpBtn  { nullptr };
+    QPushButton* m_autoSpinBtn  { nullptr };
 
     QLabel* m_creditsLabel  { nullptr };
     QLabel* m_betLabel      { nullptr };
@@ -51,6 +58,8 @@ private:
 
     void buildUI();
     void syncLabels();
+    void toggleAutoSpin();
+
     void stopReelsSequentially();
     void stopNextReel(int idx);   // chain: stop reel idx, then idx+1 on stopped()
     void applyWinHighlights();

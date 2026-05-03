@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QTimer>
 #include <algorithm>
+#include <QKeyEvent>
 
 UpperScreen::UpperScreen(SlotMachine* machine, SoundEngine* sound,
                              GameState* mainCredits, QWidget* parent)
@@ -14,6 +15,10 @@ UpperScreen::UpperScreen(SlotMachine* machine, SoundEngine* sound,
             this, &UpperScreen::onSpinFinished);
     connect(m_machine->gameState(), &GameState::creditsChanged,
             this, &UpperScreen::onCreditsChanged);
+    setFocusPolicy(Qt::StrongFocus);
+    for (auto* btn : {m_spinBtn, m_collectBtn, m_doubleUpBtn,
+                      m_betPlus, m_betMinus, m_backBtn})
+        btn->setFocusPolicy(Qt::NoFocus);
     if (m_mainCredits)
         connect(m_mainCredits, &GameState::creditsChanged,
                 this, [this](int) { syncLabels(); });
@@ -84,18 +89,10 @@ void UpperScreen::buildUI() {
     reelRow->addWidget(rightTable);
     root->addLayout(reelRow);
 
-    // Win display
     m_winLabel = new QLabel(QStringLiteral(""), this);
-    m_winLabel->setAlignment(Qt::AlignCenter);
-    m_winLabel->setFixedHeight(36);
-    m_winLabel->setStyleSheet(QStringLiteral(
-        "font-size:21px;font-weight:bold;color:#FF4500;"));
-    root->addWidget(m_winLabel);
-
-    m_statusLabel = new QLabel(QStringLiteral("5 reels, 3 paylines — bigger wins await!"), this);
-    m_statusLabel->setAlignment(Qt::AlignCenter);
-    m_statusLabel->setStyleSheet(QStringLiteral("font-size:12px;color:#ccc;"));
-    root->addWidget(m_statusLabel);
+    m_winLabel->hide();
+    m_statusLabel = new QLabel(QStringLiteral(""), this);
+    m_statusLabel->hide();
 
     // Credits row — MAIN (left) | BET (centre) | BONUS (right)
     QHBoxLayout* infoRow = new QHBoxLayout();
@@ -215,6 +212,14 @@ void UpperScreen::buildUI() {
     syncLabels();
 }
 
+void UpperScreen::keyPressEvent(QKeyEvent* e) {
+    if (e->isAutoRepeat()) { QWidget::keyPressEvent(e); return; }
+    switch (e->key()) {
+        case Qt::Key_Space: onSpinClicked(); break;
+        default: QWidget::keyPressEvent(e); break;
+    }
+}
+
 void UpperScreen::onSpinClicked() {
     // canSpin() returns true for free spins even with 0 credits
     if (!m_machine->gameState()->canSpin()) {
@@ -263,6 +268,7 @@ void UpperScreen::stopNextReel(int idx) {
                     ? QStringLiteral("🏆🏆 %1 LINES  WIN:  %2  credits").arg(nl).arg(pending)
                     : QStringLiteral("WIN:  %1  credits").arg(pending));
                 m_statusLabel->setText(r.description);
+                m_spinBtn->hide();
                 m_collectBtn->setEnabled(true);  m_collectBtn->show();
                 m_doubleUpBtn->setEnabled(true); m_doubleUpBtn->show();
                 if (pending >= 2000)     m_sound->play(SoundEngine::Sound::Jackpot);
@@ -319,6 +325,7 @@ void UpperScreen::finishRound() {
         int fs = m_machine->gameState()->freeSpinsLeft();
         m_spinBtn->setText(
             QStringLiteral("🎰  SPIN!  (%1 left)").arg(fs));
+        m_spinBtn->show();
         m_spinBtn->setEnabled(true);
     } else {
         // Free spins exhausted — show result and auto-return
@@ -392,6 +399,7 @@ void UpperScreen::refreshDisplay() {
     syncLabels();
     if (m_doubleUp) m_doubleUp->resize(size());
     // Always reset UI state on entry (handles 2nd+ visits)
+    m_spinBtn->show();
     m_spinBtn->setEnabled(true);
     m_collectBtn->hide();
     m_doubleUpBtn->hide();

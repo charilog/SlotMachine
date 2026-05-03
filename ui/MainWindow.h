@@ -9,25 +9,23 @@
 #include "LowerScreen.h"
 #include "UpperScreen.h"
 
-// ─── MainWindow ───────────────────────────────────────────────────────────────
-// Hosts a QStackedWidget with two pages:
-//   index 0 → LowerScreen  (Easy,     3-reel machine)
-//   index 1 → UpperScreen  (Advanced, 5-reel machine)
-//
-// Credits are transferred between machines on screen switches so the player's
-// wallet is shared across both modes.
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override = default;
 
+protected:
+    void keyPressEvent(QKeyEvent* e) override;
+
 private slots:
     void switchToAdvanced();
     void switchToEasy();
+    void onGameOver();
 
 private:
-    // Two independent machines (different reel counts / pay-tables)
+    int  showCreditsDialog(const QString& title, const QString& msg, int defaultVal);
+
     std::unique_ptr<SlotMachine> m_easyMachine;
     std::unique_ptr<SlotMachine> m_advMachine;
     std::unique_ptr<SoundEngine> m_sound;
@@ -37,9 +35,8 @@ private:
     UpperScreen*    m_upperScreen  { nullptr };
     QPushButton*    m_muteBtn      { nullptr };
 
-    void transferCredits(SlotMachine* from, SlotMachine* to);
+    QTimer* m_bonusCountTimer     { nullptr };
+    int     m_bonusCountRemaining { 0 };
 
-    // Bonus count-up animation (runs after returning to Easy)
-    QTimer* m_bonusCountTimer    { nullptr };
-    int     m_bonusCountRemaining{ 0 };
+    void transferCredits(SlotMachine* from, SlotMachine* to);
 };

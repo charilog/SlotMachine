@@ -1,14 +1,76 @@
+#include <QApplication>
 #include "MainWindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QStatusBar>
+#include <QDialog>
+#include <QLabel>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QKeyEvent>
+#include <QShortcut>
 
+// ── Shared credits dialog ─────────────────────────────────────────────────────
+int MainWindow::showCreditsDialog(const QString& title, const QString& msg, int defaultVal) {
+    QDialog dlg(this);
+    dlg.setWindowTitle(title);
+    dlg.setFixedSize(360, 200);
+    dlg.setModal(true);
+    dlg.setStyleSheet(QStringLiteral(
+        "QDialog  { background:#12122a; }"
+        "QLabel   { color:#FFD700; font-size:15px; font-weight:bold; }"
+        "QLabel#sub{ color:#aaa; font-size:11px; font-weight:normal; }"
+        "QSpinBox { background:#1e1e3a; color:white; border:2px solid #FFD700;"
+        "           padding:6px; font-size:16px; border-radius:6px; }"
+        "QPushButton#ok{ background:#FFD700; color:#12122a; font-weight:bold;"
+        "                padding:9px 28px; border-radius:8px; font-size:14px; }"
+        "QPushButton#ok:hover{ background:#FFA500; }"
+        "QPushButton#quit{ background:#333; color:#aaa; padding:8px 20px;"
+        "                  border-radius:8px; font-size:12px; }"
+        "QPushButton#quit:hover{ background:#555; }"
+    ));
+
+    auto* vlay = new QVBoxLayout(&dlg);
+    vlay->setSpacing(12);
+    vlay->setContentsMargins(30, 22, 30, 22);
+
+    auto* lbl = new QLabel(msg, &dlg);
+    lbl->setAlignment(Qt::AlignCenter);
+    lbl->setWordWrap(true);
+    vlay->addWidget(lbl);
+
+    auto* spin = new QSpinBox(&dlg);
+    spin->setRange(10, 10000);
+    spin->setValue(defaultVal);
+    spin->setSingleStep(50);
+    spin->setAlignment(Qt::AlignCenter);
+    vlay->addWidget(spin);
+
+    auto* hlay = new QHBoxLayout();
+    auto* okBtn = new QPushButton(QStringLiteral("🎰  LET'S PLAY!"), &dlg);
+    okBtn->setObjectName(QStringLiteral("ok"));
+    hlay->addWidget(okBtn);
+
+    auto* quitBtn = new QPushButton(QStringLiteral("❌  Quit"), &dlg);
+    quitBtn->setObjectName(QStringLiteral("quit"));
+    hlay->addWidget(quitBtn);
+    vlay->addLayout(hlay);
+
+    QObject::connect(okBtn,   &QPushButton::clicked, &dlg, &QDialog::accept);
+    QObject::connect(quitBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
+
+    if (dlg.exec() == QDialog::Accepted)
+        return spin->value();
+    return -1;   // user wants to quit
+}
+
+// ── Constructor ───────────────────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("Slot Machine | v1.1 | OptimTeam"));
-    setMinimumSize(740, 740);
-    resize(800, 800);
+    setWindowTitle(QStringLiteral("Slot Machine | v1.2 | OptimTeam"));
+    setFixedSize(800, 800);
+    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 
     m_sound = std::make_unique<SoundEngine>(this);
 
@@ -22,8 +84,10 @@ MainWindow::MainWindow(QWidget* parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    m_muteBtn = new QPushButton(QStringLiteral("🔊 Sound ON"), this);
+    // Mute button — NoFocus so keyboard always goes to screen widgets
+    m_muteBtn = new QPushButton(QStringLiteral("🔊 Sound ON  [S]"), this);
     m_muteBtn->setCheckable(true);
+    m_muteBtn->setFocusPolicy(Qt::NoFocus);
     m_muteBtn->setStyleSheet(QStringLiteral(
         "QPushButton { background:#1e1e3a; color:#ccc; padding:3px 10px;"
         "  border-radius:4px; border:1px solid #444; font-size:11px; }"
@@ -32,8 +96,8 @@ MainWindow::MainWindow(QWidget* parent)
     ));
     connect(m_muteBtn, &QPushButton::toggled, this, [this](bool muted) {
         m_sound->setMuted(muted);
-        m_muteBtn->setText(muted ? QStringLiteral("🔇 Muted")
-                                 : QStringLiteral("🔊 Sound ON"));
+        m_muteBtn->setText(muted ? QStringLiteral("🔇 Muted  [S]")
+                                 : QStringLiteral("🔊 Sound ON  [S]"));
     });
     statusBar()->addPermanentWidget(m_muteBtn);
     statusBar()->setStyleSheet(QStringLiteral(
@@ -51,7 +115,6 @@ MainWindow::MainWindow(QWidget* parent)
     m_stack->addWidget(m_upperScreen);
     m_stack->setCurrentIndex(0);
 
-    // Bonus count-up timer
     m_bonusCountTimer = new QTimer(this);
     m_bonusCountTimer->setInterval(25);
     connect(m_bonusCountTimer, &QTimer::timeout, this, [this]() {
@@ -67,38 +130,80 @@ MainWindow::MainWindow(QWidget* parent)
         }
     });
 
+    connect(m_easyMachine->gameState(), &GameState::gameOver,
+            this, &MainWindow::onGameOver);
     connect(m_lowerScreen, &LowerScreen::levelUpRequested,
             this, &MainWindow::switchToAdvanced);
     connect(m_upperScreen, &UpperScreen::backRequested,
             this, &MainWindow::switchToEasy);
+
+    // ── Global keyboard shortcut for Sound toggle ────────────────────────
+    auto* soundShortcut = new QShortcut(QKeySequence(Qt::Key_S), this);
+    connect(soundShortcut, &QShortcut::activated, this, [this]() {
+        m_muteBtn->toggle();
+    });
+
+    // ── START DIALOG — runs BEFORE window is shown ────────────────────────────
+    // This works because exec() pumps events even before show()
+    int credits = showCreditsDialog(
+        QStringLiteral("Slot Machine v1.2 — OptimTeam"),
+        QStringLiteral("🎰  Welcome!\n\nHow many credits to start?"),
+        100);
+    if (credits < 0) {
+        // User pressed Quit
+        QTimer::singleShot(0, qApp, &QApplication::quit);
+        return;
+    }
+    m_easyMachine->gameState()->setCredits(credits);
 }
 
+// ── Keyboard — S for sound (works globally) ──────────────────────────────────
+void MainWindow::keyPressEvent(QKeyEvent* e) {
+    if (e->isAutoRepeat()) { QMainWindow::keyPressEvent(e); return; }
+    if (e->key() == Qt::Key_S) {
+        m_muteBtn->toggle();   // fires toggled signal → updates everything
+        return;
+    }
+    QMainWindow::keyPressEvent(e);
+}
+
+// ── Game Over ─────────────────────────────────────────────────────────────────
+void MainWindow::onGameOver() {
+    QTimer::singleShot(800, this, [this]() {
+        int credits = showCreditsDialog(
+            QStringLiteral("💀  GAME OVER"),
+            QStringLiteral("Out of credits!\n\nPlay again?"),
+            100);
+        if (credits < 0) {
+            close();
+            return;
+        }
+        m_easyMachine->gameState()->reset();
+        m_advMachine->gameState()->reset();
+        m_advMachine->gameState()->setLevel(GameLevel::Advanced);
+        m_easyMachine->gameState()->setCredits(credits);
+        m_stack->setCurrentIndex(0);
+        m_lowerScreen->refreshDisplay();
+    });
+}
+
+// ── Screen switching ──────────────────────────────────────────────────────────
 void MainWindow::switchToAdvanced() {
     m_advMachine->gameState()->setCredits(0);
     m_advMachine->gameState()->triggerBonusRound();
     m_stack->setCurrentIndex(1);
     m_upperScreen->refreshDisplay();
-    setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
     m_sound->play(SoundEngine::Sound::LevelUp);
 }
 
 void MainWindow::switchToEasy() {
-    // Grab bonus credits before resetting adv machine
     int bonus = m_advMachine->gameState()->credits();
-
-    // Reset adv machine for next time
     m_advMachine->gameState()->setCredits(0);
-
-    // Switch screen first
     m_stack->setCurrentIndex(0);
-    setWindowTitle(QStringLiteral("Slot Machine | v1.0 | OptimTeam"));
-
-    // ── Count-up animation: add bonus to easy credits gradually ──────────────
     if (bonus > 0) {
         m_bonusCountRemaining = bonus;
         m_sound->startCoins();
         m_bonusCountTimer->start();
-        // refreshDisplay called when count finishes
     } else {
         m_lowerScreen->refreshDisplay();
     }

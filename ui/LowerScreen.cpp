@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QTimer>
 #include <algorithm>
+#include <QKeyEvent>
 
 LowerScreen::LowerScreen(SlotMachine* machine, SoundEngine* sound, QWidget* parent)
     : QWidget(parent), m_machine(machine), m_sound(sound)
@@ -59,19 +60,11 @@ void LowerScreen::buildUI() {
     reelRow->addWidget(rightTable);
     root->addLayout(reelRow);
 
-    // Win display (shows pending win amount, counts down during animation)
+    // Win/status labels — hidden, but kept as members for code compatibility
     m_winLabel = new QLabel(QStringLiteral(""), this);
-    m_winLabel->setAlignment(Qt::AlignCenter);
-    m_winLabel->setFixedHeight(38);
-    m_winLabel->setStyleSheet(QStringLiteral(
-        "font-size:22px;font-weight:bold;color:#FFD700;"));
-    root->addWidget(m_winLabel);
-
-    // Status
-    m_statusLabel = new QLabel(QStringLiteral("Press SPIN to play!"), this);
-    m_statusLabel->setAlignment(Qt::AlignCenter);
-    m_statusLabel->setStyleSheet(QStringLiteral("font-size:13px;color:#ccc;"));
-    root->addWidget(m_statusLabel);
+    m_winLabel->hide();
+    m_statusLabel = new QLabel(QStringLiteral(""), this);
+    m_statusLabel->hide();
 
     // Credits / Bet row
     QHBoxLayout* infoRow = new QHBoxLayout();
@@ -113,6 +106,21 @@ void LowerScreen::buildUI() {
         "QPushButton:disabled{background:#555;color:#888;border-color:#444;}"));
     root->addWidget(m_spinBtn);
 
+    // AUTO SPIN button
+    m_autoSpinBtn = new QPushButton(QStringLiteral("🔄  AUTO SPIN  (A)"), this);
+    m_autoSpinBtn->setFixedHeight(44);
+    m_autoSpinBtn->setCheckable(true);
+    m_autoSpinBtn->setToolTip(QStringLiteral("Toggle auto-spin  [A]"));
+    m_autoSpinBtn->setStyleSheet(QStringLiteral(
+        "QPushButton { background:#1a2a3a; color:#88bbff; font-size:14px;"
+        "  font-weight:bold; border-radius:8px; border:2px solid #336699; }"
+        "QPushButton:checked { background:#002244; color:#44aaff;"
+        "  border-color:#44aaff; }"
+        "QPushButton:hover { background:#223344; }"
+        "QPushButton:disabled { background:#1a1a2a; color:#444; border-color:#333; }"
+    ));
+    root->addWidget(m_autoSpinBtn);
+
     // COLLECT button (hidden until win)
     m_collectBtn = new QPushButton(QStringLiteral("✅  COLLECT"), this);
     m_collectBtn->setFixedHeight(48);
@@ -144,6 +152,12 @@ void LowerScreen::buildUI() {
 
     // Connections
     connect(m_spinBtn,     &QPushButton::clicked, this, &LowerScreen::onSpinClicked);
+    connect(m_autoSpinBtn, &QPushButton::clicked, this, &LowerScreen::toggleAutoSpin);
+    setFocusPolicy(Qt::StrongFocus);
+    // All buttons NoFocus so keyboard always stays on this widget
+    for (auto* btn : {m_spinBtn, m_autoSpinBtn, m_collectBtn,
+                      m_doubleUpBtn, m_betPlus, m_betMinus})
+        btn->setFocusPolicy(Qt::NoFocus);
     connect(m_betPlus,     &QPushButton::clicked, this, &LowerScreen::onBetPlus);
     connect(m_betMinus,    &QPushButton::clicked, this, &LowerScreen::onBetMinus);
     connect(m_collectBtn,  &QPushButton::clicked, this, [this]() {
@@ -229,6 +243,8 @@ void LowerScreen::stopNextReel(int idx) {
             if (r.isWin && pending > 0) {
                 m_winLabel->setText(QStringLiteral("WIN:  %1  credits").arg(pending));
                 m_statusLabel->setText(r.description);
+                m_spinBtn->hide();
+                m_autoSpinBtn->hide();
                 m_collectBtn->setEnabled(true);  m_collectBtn->show();
                 m_doubleUpBtn->setEnabled(true); m_doubleUpBtn->show();
                 if (pending >= 500)     m_sound->play(SoundEngine::Sound::Jackpot);
@@ -283,10 +299,37 @@ void LowerScreen::onCountTick() {
     }
 }
 
+void LowerScreen::keyPressEvent(QKeyEvent* e) {
+    if (e->isAutoRepeat()) { QWidget::keyPressEvent(e); return; }
+    switch (e->key()) {
+        case Qt::Key_Space: onSpinClicked();    break;
+        case Qt::Key_A:     toggleAutoSpin();   break;
+        default: QWidget::keyPressEvent(e);     break;
+    }
+}
+
+void LowerScreen::toggleAutoSpin() {
+    m_autoSpin = !m_autoSpin;
+    m_autoSpinBtn->setChecked(m_autoSpin);
+    m_autoSpinBtn->setText(m_autoSpin
+        ? QStringLiteral("🔄  AUTO SPIN ON  (A)")
+        : QStringLiteral("🔄  AUTO SPIN  (A)"));
+    if (m_autoSpin && m_spinBtn->isEnabled())
+        onSpinClicked();
+}
+
 void LowerScreen::finishRound() {
+    m_spinBtn->show();
     m_spinBtn->setEnabled(true);
+    m_autoSpinBtn->show();
     m_machine->gameState()->checkLevelUp();
     syncLabels();
+    // Auto-spin: schedule next spin after brief pause
+    if (m_autoSpin && m_machine->gameState()->canSpin())
+        QTimer::singleShot(600, this, [this]() {
+            if (m_autoSpin && m_spinBtn->isEnabled())
+                onSpinClicked();
+        });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -324,11 +367,17 @@ void LowerScreen::applyWinHighlights() {
         m_reelWidgets[i]->setWinHighlight(1);
 }
 
+void LowerScreen::showEvent(QShowEvent* e) {
+    QWidget::showEvent(e);
+    setFocus();
+}
+
 void LowerScreen::refreshDisplay() {
     syncLabels();
     if (m_doubleUp) m_doubleUp->resize(size());
-    // Re-enable spin when returning from Advanced mode
+    m_spinBtn->show();
     m_spinBtn->setEnabled(true);
+    m_autoSpinBtn->show();
     m_collectBtn->hide();
     m_doubleUpBtn->hide();
     m_winLabel->setText(QStringLiteral(""));
